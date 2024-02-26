@@ -1,6 +1,11 @@
 import numpy as np
 from tqdm import tqdm
 import random
+import matplotlib.pyplot as plt
+
+def calculate_moving_average(data, window_size):
+    """Calculate the moving average given a window size."""
+    return np.convolve(data, np.ones(window_size)/window_size, mode='valid')
 
 
 def q_learning(env, episodes=5000, gamma=0.90, alpha=0.08, epsilon=0.1):
@@ -29,24 +34,83 @@ def q_learning(env, episodes=5000, gamma=0.90, alpha=0.08, epsilon=0.1):
     
     for state in terminal_states:
         q_sa[state] = np.zeros(env.action_space.n)
+    
+    cumulative_rewards = []
+    average_max_q_changes = []
+    rewards_temp = []
+    max_q_changes_temp = []
+    policy_changes_smoothed = []
+    policy_changes_temp = []
+    previous_policy = np.argmax(q_sa, axis=1)
 
-    for _ in tqdm(range(episodes)):
+    for episode in tqdm(range(episodes)):
         state = env.reset()
         state = state[0]
-        done = False
-        while not done:
+        terminated = False
+        total_reward = 0
+        max_q_change = 0
+        
+
+        while not terminated:
             if random.uniform(0, 1) < epsilon:
                 action = env.action_space.sample()
             else:
                 action = np.argmax(q_sa[state])
             
-            next_state, reward, done, truncated, info  = env.step(action)
+            next_state, reward, terminated, truncated, info  = env.step(action)
+            prev_state = q_sa[state, action]
             q_sa[state, action] = q_sa[state, action] + alpha * (reward + gamma * np.max(q_sa[next_state]) - q_sa[state, action])
+            max_q_change = max(max_q_change, abs(q_sa[state, action] - prev_state))
+
             state = next_state
-            if done:
-                break
+            total_reward += reward
+            
+        
+        current_policy = np.argmax(q_sa, axis=1)
+        policy_change_count = np.sum(current_policy != previous_policy)
+        previous_policy = current_policy
+        policy_changes_temp.append(policy_change_count)
+        rewards_temp.append(total_reward)
+        max_q_changes_temp.append(max_q_change)
+
+        if (episode + 1) % 100 == 0:
+            cumulative_rewards.append(np.mean(rewards_temp))
+            average_max_q_changes.append(np.mean(max_q_changes_temp))
+            policy_changes_smoothed.append(np.mean(policy_changes_temp))
+            rewards_temp = []
+            max_q_changes_temp = []
+            policy_changes_temp = []
 
     optimal_policy = np.argmax(q_sa, axis=1)
+
+
+     # Plotting
+    episodes_grouped = range(0, episodes, 100)
+    plt.figure(figsize=(14, 6))
+
+    plt.subplot(2, 2, 1)
+    plt.plot(episodes_grouped, cumulative_rewards)
+    plt.xlabel('Episodes')
+    plt.ylabel('Average Cumulative Reward')
+    plt.title('Average Cumulative Reward per 100 Episodes')
+
+    plt.subplot(2, 2, 2)
+    plt.plot(episodes_grouped, average_max_q_changes)
+    plt.xlabel('Episodes')
+    plt.ylabel('Average Max Q-Value Change')
+    plt.title('Average Max Q-Value Change per 100 Episodes')
+
+    plt.subplot(2, 2, 3)
+    plt.plot(policy_changes_smoothed)
+    plt.xlabel('Episode')
+    plt.ylabel('Average Policy Changes')
+    plt.title('Average Policy Stability Change per 100 Episodes')
+
+
+    plt.tight_layout()
+    # Save the plot
+    plt.savefig("q_learning.png")
+
         
     return optimal_policy
 
