@@ -12,14 +12,14 @@ def generate_episode(env, policy, epsilon):
     episode = []
     state = env.reset()
     state = state[0]
-    done = False
-    while not done:
+    terminated = False
+    while not terminated:
         # Epsilon-greedy action selection
         if random.uniform(0, 1) < epsilon:
             action = env.action_space.sample()  # Explore
         else:
             action = policy[state]  # Exploit based on current policy
-        next_state, reward, done, _, _ = env.step(action)
+        next_state, reward, terminated, truncated, info = env.step(action)
         episode.append((state, action, reward))
         state = next_state
     return episode
