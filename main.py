@@ -4,7 +4,7 @@ import gymnasium as gym
 from dynamic_programming import dynamic_programming
 from q_learning import q_learning
 from monte_carlo import every_visit_monte_carlo, first_visit_monte_carlo
-#from eligibility_traces import eligibility_traces
+from eligibility_traces import sarsa_lambda_et
 
 def print_optimal_policy(optimal_policy, env):
     """
@@ -67,6 +67,7 @@ def main():
     parser.add_argument('-a', '--alpha', type=float, default=0.08, help='Alpha Value.')
     parser.add_argument('-e', '--epsilon', type=float, default=0.1, help='Epsilon Value.')
     parser.add_argument('-ep', '--episodes', type=int, default=5000, help='Number of episodes.')
+    parser.add_argument('-l', '--lambda_', type=float, default=0.9, help='Lambda Value. Used for eligibility trace decay')
     parser.add_argument('-d', '--desc', type=str, default=None, help='Description for the Frozen Lake environment.')
     parser.add_argument('-m', '--map', type=str, default="4x4", help='Map size for the Frozen Lake environment.')
     parser.add_argument('-r', '--render', type=str, default="human", help='Render mode for the Frozen Lake environment.')
@@ -80,6 +81,7 @@ def main():
     alpha = args.alpha
     threshold = args.threshold
     episodes = args.episodes
+    lambda_ = args.lambda_
     desc = args.desc
     if desc is not None:
         desc = desc.split(",")
@@ -111,6 +113,10 @@ def main():
     elif algorithm == "mcev":
         print("Monte Carlo: Every Visit")
         optimal_policy = every_visit_monte_carlo(env=env, episodes=episodes, gamma=gamma, epsilon=epsilon)
+    elif algorithm == "et":
+        print("Eligibility Traces")
+        optimal_policy = sarsa_lambda_et(env=env, episodes=episodes, gamma=gamma, alpha=alpha, epsilon=epsilon, lambda_=lambda_)
+
     """
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     TODO
