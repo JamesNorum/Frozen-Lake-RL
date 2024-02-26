@@ -2,6 +2,11 @@ import numpy as np
 from tqdm import tqdm
 import random
 from collections import defaultdict
+import matplotlib.pyplot as plt
+
+def moving_average(data, window_size):
+    """ Compute moving average """
+    return np.convolve(data, np.ones(window_size)/window_size, mode='valid')
 
 def generate_episode(env, policy, epsilon):
     episode = []
@@ -55,17 +60,67 @@ def every_visit_monte_carlo(env, episodes=5000, gamma=0.9, epsilon=0.1):
     returns_sum = defaultdict(lambda: np.zeros(env.action_space.n))
     returns_count = defaultdict(lambda: np.zeros(env.action_space.n))
 
+    # Initialize lists to track metrics
+    episode_returns = []  # Total return (sum of rewards) per episode
+    episode_lengths = []  # Number of steps per episode
+    average_rewards_per_step = []  # Average reward per step in an episode
+
     for _ in tqdm(range(episodes)):
         episode = generate_episode(env, policy, epsilon)
         G = 0
+        total_return = 0 # Total return for this episode
         
         for state, action, reward in reversed(episode):
             G = gamma * G + reward
             returns_sum[state][action] += G
             returns_count[state][action] += 1
             Q_sa[state][action] = returns_sum[state][action] / returns_count[state][action]
+            total_return += reward  # Accumulate total return for this episode
         
         policy = generate_policy(Q_sa)
+        
+        # Track metrics for this episode
+        episode_returns.append(total_return)
+        episode_lengths.append(len(episode))
+        average_rewards_per_step.append(total_return / len(episode) if len(episode) > 0 else 0)
+
+    
+    # Set window size to 1% of the number of episodes
+    window_size = episodes // 10  
+
+    # Create a figure and a set of subplots
+    fig, axs = plt.subplots(3, 1, figsize=(10, 10))  # Adjusted for better fit
+
+    # Plot Total Return per Episode with Moving Average
+    smoothed_returns = moving_average(episode_returns, window_size)
+    axs[0].plot(smoothed_returns, label='Total Return per Episode (Smoothed)')
+    axs[0].set_ylabel('Total Return (Smoothed)')
+    axs[0].set_title('Total Return per Episode over Training (Smoothed)')
+    axs[0].legend(loc='lower right')
+    axs[0].grid(True)
+
+    # Plot Episode Length over Training with Moving Average
+    smoothed_lengths = moving_average(episode_lengths, window_size)
+    axs[1].plot(smoothed_lengths, label='Episode Length (Smoothed)', color='orange')
+    axs[1].set_ylabel('Episode Length (Smoothed)')
+    axs[1].set_title('Episode Length over Training (Smoothed)')
+    axs[1].legend()
+    axs[1].grid(True)
+
+    # Plot Average Reward Per Step with Moving Average
+    #plt.figure(figsize=(12, 7))
+    smoothed_rewards = moving_average(average_rewards_per_step, window_size)
+    axs[2].plot(smoothed_rewards, label='Average Reward Per Step (Smoothed)', color='green')
+    axs[2].set_xlabel('Episode')
+    axs[2].set_ylabel('Average Reward Per Step (Smoothed)')
+    axs[2].set_title('Average Reward Per Step over Training (Smoothed)')
+    axs[2].legend(loc='lower right')
+    axs[2].grid(True)
+
+    # Adjust layout to prevent overlapping
+    plt.tight_layout(pad=4.0)  # Adjust padding
+
+    plt.show()
 
     return policy
 
