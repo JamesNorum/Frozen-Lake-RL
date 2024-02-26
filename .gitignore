@@ -238,4 +238,7 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 
+# Helper files used to develop
+eligibility_traces.txt
+
 # End of https://www.toptal.com/developers/gitignore/api/python,macos,windows
