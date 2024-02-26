@@ -3,6 +3,8 @@ import gymnasium as gym
 # Import the algorithms
 from dynamic_programming import dynamic_programming
 from q_learning import q_learning
+from monte_carlo import monte_carlo
+#from eligibility_traces import eligibility_traces
 
 def print_optimal_policy(optimal_policy, env):
     """
@@ -59,7 +61,7 @@ def main():
     """
     # Command Line Arguments
     parser = argparse.ArgumentParser(description='Dynamic programming for Frozen Lake environment.')
-    parser.add_argument('-al', '--algorithm', type=str, default="d", choices={"d", "q", "m", "e"}, help='The algorithm to use for solving the Frozen Lake environment. Default is dynamic. The options are d for Dynamic, q for Q-Learning, m for Monte Carlo, and e for Eligibility Traces.')
+    parser.add_argument('-al', '--algorithm', type=str, default="d", choices={"d", "q", "m", "et"}, help='The algorithm to use for solving the Frozen Lake environment. Default is dynamic. The options are d for Dynamic, q for Q-Learning, m for Monte Carlo, and e for Eligibility Traces.')
     parser.add_argument('-g', '--gamma', type=float, default=0.90, help='Discount factor gamma.')    
     parser.add_argument('-t', '--threshold', type=float, default=0.0001, help='Convergence threshold.')
     parser.add_argument('-a', '--alpha', type=float, default=0.08, help='Alpha Value.')
@@ -103,6 +105,9 @@ def main():
     elif algorithm == "q":
         print("Q-Learning")
         optimal_policy = q_learning(env=env, episodes=episodes, gamma=gamma, alpha=alpha, epsilon=epsilon)
+    elif algorithm == "m":
+        print("Monte Carlo: First Visit")
+        optimal_policy = monte_carlo(env=env, episodes=episodes, gamma=gamma, epsilon=epsilon)
     """
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     TODO
@@ -110,6 +115,7 @@ def main():
         Add other algorithms here once implemented
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     """ 
+
 
     print("Optimal policy:\n", optimal_policy)
     
