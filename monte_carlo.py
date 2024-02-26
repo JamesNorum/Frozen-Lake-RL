@@ -38,7 +38,7 @@ def init_q_sa(env):
 
     return Q_sa    
 
-def monte_carlo(env, episodes=5000, gamma=0.9, epsilon=0.1):
+def every_visit_monte_carlo(env, episodes=5000, gamma=0.9, epsilon=0.1):
     # Define Constants
     env = env
     episodes = episodes
@@ -64,6 +64,40 @@ def monte_carlo(env, episodes=5000, gamma=0.9, epsilon=0.1):
             returns_sum[state][action] += G
             returns_count[state][action] += 1
             Q_sa[state][action] = returns_sum[state][action] / returns_count[state][action]
+        
+        policy = generate_policy(Q_sa)
+
+    return policy
+
+def first_visit_monte_carlo(env, episodes=5000, gamma=0.9, epsilon=0.1):
+    # Define Constants
+    env = env
+    episodes = episodes
+    gamma = gamma
+    epsilon = epsilon
+
+    # Initialize Q(s,a)
+    Q_sa = init_q_sa(env)
+
+    # Initialize policy based on Q(s, a)
+    policy = generate_policy(Q_sa)
+
+    # Initialize empty dictionaries for returns 
+    returns_sum = defaultdict(lambda: np.zeros(env.action_space.n))
+    returns_count = defaultdict(lambda: np.zeros(env.action_space.n))
+
+    for _ in tqdm(range(episodes)):
+        episode = generate_episode(env, policy, epsilon)
+        G = 0
+        visited_state_actions = set()  # To track first visits
+
+        for state, action, reward in reversed(episode):
+            if (state, action) not in visited_state_actions:
+                G = gamma * G + reward
+                returns_sum[state][action] += G
+                returns_count[state][action] += 1
+                Q_sa[state][action] = returns_sum[state][action] / returns_count[state][action]
+                visited_state_actions.add((state, action))  # Mark this state-action as visited
         
         policy = generate_policy(Q_sa)
 
