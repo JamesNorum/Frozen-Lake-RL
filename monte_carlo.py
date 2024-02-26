@@ -68,18 +68,18 @@ def every_visit_monte_carlo(env, episodes=5000, gamma=0.9, epsilon=0.1):
     for _ in tqdm(range(episodes)):
         episode = generate_episode(env, policy, epsilon)
         G = 0
-        total_return = 0 # Total return for this episode
+        total_return = 0 # Total return for this episode - used for graphs
         
         for state, action, reward in reversed(episode):
             G = gamma * G + reward
             returns_sum[state][action] += G
             returns_count[state][action] += 1
             Q_sa[state][action] = returns_sum[state][action] / returns_count[state][action]
-            total_return += reward  # Accumulate total return for this episode
+            total_return += reward  # Accumulate total return for this episode - used for graphs
         
         policy = generate_policy(Q_sa)
         
-        # Track metrics for this episode
+        # Track metrics for this episode - used for graphs
         episode_returns.append(total_return)
         episode_lengths.append(len(episode))
         average_rewards_per_step.append(total_return / len(episode) if len(episode) > 0 else 0)
@@ -120,7 +120,7 @@ def every_visit_monte_carlo(env, episodes=5000, gamma=0.9, epsilon=0.1):
     # Adjust layout to prevent overlapping
     plt.tight_layout(pad=4.0)  # Adjust padding
 
-    plt.show()
+    plt.savefig('monte_carlo_ev.png')
 
     return policy
 
