@@ -57,7 +57,7 @@ def q_learning(env, episodes=5000, gamma=0.90, alpha=0.08, epsilon=0.1):
             else:
                 action = np.argmax(q_sa[state])
             
-            next_state, reward, terminated, truncated, info  = env.step(action)
+            next_state, reward, terminated, truncated, info = env.step(action)
             prev_state = q_sa[state, action]
             q_sa[state, action] = q_sa[state, action] + alpha * (reward + gamma * np.max(q_sa[next_state]) - q_sa[state, action])
             max_q_change = max(max_q_change, abs(q_sa[state, action] - prev_state))

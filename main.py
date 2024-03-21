@@ -5,6 +5,7 @@ from dynamic_programming import dynamic_programming
 from q_learning import q_learning
 from monte_carlo import every_visit_monte_carlo, first_visit_monte_carlo
 from eligibility_traces import sarsa_lambda_et
+from multi_agent_q_learning import multi_agent_q_learning
 
 def print_optimal_policy(optimal_policy, env):
     """
@@ -61,7 +62,7 @@ def main():
     """
     # Command Line Arguments
     parser = argparse.ArgumentParser(description='Dynamic programming for Frozen Lake environment.')
-    parser.add_argument('-al', '--algorithm', type=str, default="d", choices={"d", "q", "mcfv", "mcev", "et"}, help='The algorithm to use for solving the Frozen Lake environment. Default is dynamic. The options are d for Dynamic, q for Q-Learning, mcfv for Monte Carlo: First Visit, mcev for Monte Carlo: Every Visit, and e for Eligibility Traces.')
+    parser.add_argument('-al', '--algorithm', type=str, default="d", choices={"d", "q", "mcfv", "mcev", "et", "ma"}, help='The algorithm to use for solving the Frozen Lake environment. Default is dynamic. The options are d for Dynamic, q for Q-Learning, mcfv for Monte Carlo: First Visit, mcev for Monte Carlo: Every Visit, e for Eligibility Traces, and ma for Multi Agent.')
     parser.add_argument('-g', '--gamma', type=float, default=0.90, help='Discount factor gamma.')    
     parser.add_argument('-t', '--threshold', type=float, default=0.0001, help='Convergence threshold.')
     parser.add_argument('-a', '--alpha', type=float, default=0.08, help='Alpha Value.')
@@ -72,6 +73,7 @@ def main():
     parser.add_argument('-m', '--map', type=str, default="4x4", help='Map size for the Frozen Lake environment.')
     parser.add_argument('-r', '--render', type=str, default="human", help='Render mode for the Frozen Lake environment.')
     parser.add_argument('-s', '--slippery', action='store_true', help='Use slippery mode, Default is false.')
+    parser.add_argument('-ag', '--agents', type=list, default=[(0,0), (0,1), (0,2)], help='Agent positions for the Multi Agent Frozen Lake environment. Default is [(0,0), (0,1), (0,2)].')
     args = parser.parse_args()
 
     # Store the arguments
@@ -96,6 +98,7 @@ def main():
         raise ValueError("Map Argument -m : Map size should be 4x4, 8x8, or custom.")
     render_mode = args.render
     slippery = args.slippery
+    agents = args.agents
 
     print(f"Running Frozen Lake with parameters: Algorithm: {algorithm}, Gamma: {gamma}, Epsilon: {epsilon}, Alpha: {alpha}, Threshold: {threshold}, Episodes: {episodes}, Description: {desc}, Map: {map_name}, Render Mode: {render_mode}, Slippery: {slippery}")    
 
@@ -116,6 +119,9 @@ def main():
     elif algorithm == "et":
         print("Eligibility Traces")
         optimal_policy = sarsa_lambda_et(env=env, episodes=episodes, gamma=gamma, alpha=alpha, epsilon=epsilon, lambda_=lambda_)
+    elif algorithm == "ma":
+        print("Multi Agent Q-Learning")
+        optimal_policy = multi_agent_q_learning(agents=agents, episodes=episodes, gamma=gamma, alpha=alpha, epsilon=epsilon, render_mode=render_mode, slippery=slippery, map_name=map_name, desc=desc)
 
     """
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
