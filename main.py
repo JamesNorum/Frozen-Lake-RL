@@ -120,8 +120,11 @@ def main():
         print("Eligibility Traces")
         optimal_policy = sarsa_lambda_et(env=env, episodes=episodes, gamma=gamma, alpha=alpha, epsilon=epsilon, lambda_=lambda_)
     elif algorithm == "ma":
+        env.close()
         print("Multi Agent Q-Learning")
-        optimal_policy = multi_agent_q_learning(agents=agents, episodes=episodes, gamma=gamma, alpha=alpha, epsilon=epsilon, render_mode=render_mode, slippery=slippery, map_name=map_name, desc=desc)
+        desc = ["SFFHFFHF", "FHFFFFFF", "FFFHFFFF", "FFFFHHFG", "FHFFFFFF", "FFFHHHFF", "FFFFFFFF", "HFFFFFFF"]
+        multi_agent_q_learning(agents=agents, episodes=episodes, gamma=gamma, alpha=alpha, epsilon=epsilon, render_mode=render_mode, slippery=slippery, map_name=map_name, desc=desc)
+        return
 
     """
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

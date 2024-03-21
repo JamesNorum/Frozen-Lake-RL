@@ -289,6 +289,8 @@ class MultiAgentFrozenLakeEnv(Env):
 
         self.observation_space = spaces.Tuple([spaces.Discrete(self.nrow * self.ncol) for _ in range(num_agents)])
         self.action_space = spaces.Tuple([spaces.Discrete(4) for _ in range(num_agents)])
+        self.observation_space.n = nS
+        self.action_space.n = nA 
 
         self.render_mode = render_mode
 
@@ -333,18 +335,19 @@ class MultiAgentFrozenLakeEnv(Env):
         new_positions = []
         for agent_idx, action in enumerate(actions):
             current_position = self.agent_positions[agent_idx]
-            # Assuming calculate_new_position is a method that computes the new position based on the current position and action
             new_position = self.calculate_new_position(current_position, action)
             new_positions.append(new_position)
 
-         
+        # Create a temporary list to track occupied positions for collision resolution
+        occupied_positions = set(self.agent_positions)  # Start with current positions to allow moving away
         collisions_resolved_positions = []
         for idx, pos in enumerate(new_positions):
-            if new_positions.count(pos) > 1:  # Collision detected
-                # Keep the agent in its current position as a way to resolve the collision
+            if pos in occupied_positions:
+                # Collision detected, revert to original position if new position is already occupied
                 collisions_resolved_positions.append(self.agent_positions[idx])
             else:
-                # No collision for this agent, move to the new position
+                # No collision, update occupied positions and move to the new position
+                occupied_positions.add(pos)
                 collisions_resolved_positions.append(pos)
 
         # Update agent positions after resolving collisions
@@ -368,7 +371,6 @@ class MultiAgentFrozenLakeEnv(Env):
             else:
                 rewards[agent_idx] = 0  # Standard reward for non-terminal state
 
-
         any_terminated = any(terminated)
         
         # Combine the states of all agents into a single state
@@ -378,8 +380,10 @@ class MultiAgentFrozenLakeEnv(Env):
         total_reward = sum(rewards)
 
         info["rewards"] = rewards
+        info["states"] = states
 
         return next_state, total_reward, any_terminated, False, info
+
 
     def get_combined_state(self):
         """Combine agents' positions into a single state representation."""
@@ -555,17 +559,3 @@ class MultiAgentFrozenLakeEnv(Env):
 
             pygame.display.quit()
             pygame.quit()
-
-
-
-
-"""
-from gym.envs.registration import register
-
-register(
-    id='MultiAgentFrozenLake-v0',
-    entry_point='path.to.your.multi_agent_frozen_lake:MultiAgentFrozenLakeEnv',
-)
-
-"""
-

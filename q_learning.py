@@ -111,7 +111,7 @@ def q_learning(env, episodes=5000, gamma=0.90, alpha=0.08, epsilon=0.1):
     # Save the plot
     plt.savefig("q_learning.png")
 
-        
+    
     return optimal_policy
 
 
