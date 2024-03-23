@@ -73,7 +73,12 @@ def main():
     parser.add_argument('-m', '--map', type=str, default="4x4", help='Map size for the Frozen Lake environment.')
     parser.add_argument('-r', '--render', type=str, default="human", help='Render mode for the Frozen Lake environment.')
     parser.add_argument('-s', '--slippery', action='store_true', help='Use slippery mode, Default is false.')
-    parser.add_argument('-ag', '--agents', type=list, default=[(0,0), (0,1), (0,2)], help='Agent positions for the Multi Agent Frozen Lake environment. Default is [(0,0), (0,1), (0,2)].')
+    parser.add_argument('-ag', '--agents', type=str, default="[(0,0), (3,0), (6,0)]", help='Agent positions for the Multi Agent Frozen Lake environment. Default is [(0,0), (0,1), (0,2)].')
+    parser.add_argument('-b', '--blocking', action='store_true', help='Use block mode, Default is false.')
+    parser.add_argument('-bp', '--blocking_penalty', type=float, default=-0.1, help='Blocking penalty for the Multi Agent Frozen Lake environment. Default is -0.1.')
+    parser.add_argument('-gr', '--goal_reward', type=float, default=1, help='Goal reward for the Multi Agent Frozen Lake environment. Default is 1.')
+    parser.add_argument('-hr', '--hole_reward', type=float, default=0, help='Hole reward for the Multi Agent Frozen Lake environment. Default is 0.')
+    parser.add_argument('-sr', '--step_reward', type=float, default=0, help='Step reward for the Multi Agent Frozen Lake environment. Default is 0.')
     args = parser.parse_args()
 
     # Store the arguments
@@ -98,7 +103,18 @@ def main():
         raise ValueError("Map Argument -m : Map size should be 4x4, 8x8, or custom.")
     render_mode = args.render
     slippery = args.slippery
-    agents = args.agents
+    import ast
+    try:
+        agents = ast.literal_eval(args.agents)
+        if not all(isinstance(agent, tuple) and len(agent) == 2 for agent in agents):
+            raise ValueError
+    except (ValueError, SyntaxError):
+        raise ValueError("Invalid format for 'agents'. Please provide a list of tuples like [(0,0), (1,1), (2,2)].")
+    blocking = args.blocking
+    blocking_penalty = args.blocking_penalty
+    goal_reward = args.goal_reward
+    hole_reward = args.hole_reward
+    step_reward = args.step_reward
 
     print(f"Running Frozen Lake with parameters: Algorithm: {algorithm}, Gamma: {gamma}, Epsilon: {epsilon}, Alpha: {alpha}, Threshold: {threshold}, Episodes: {episodes}, Description: {desc}, Map: {map_name}, Render Mode: {render_mode}, Slippery: {slippery}")    
 
@@ -123,7 +139,7 @@ def main():
         env.close()
         print("Multi Agent Q-Learning")
         desc = ["SFFHFFHF", "FHFFFFFF", "FFFHFFFF", "FFFFHHFG", "FHFFFFFF", "FFFHHHFF", "FFFFFFFF", "HFFFFFFF"]
-        multi_agent_q_learning(agents=agents, episodes=episodes, gamma=gamma, alpha=alpha, epsilon=epsilon, render_mode=render_mode, slippery=slippery, map_name=map_name, desc=desc)
+        multi_agent_q_learning(agents=agents, episodes=episodes, gamma=gamma, alpha=alpha, epsilon=epsilon, render_mode=render_mode, slippery=slippery, map_name=map_name, desc=desc, block=blocking, blocking_penalty=blocking_penalty, goal_reward=goal_reward, hole_reward=hole_reward, step_reward=step_reward)
         return
 
     """

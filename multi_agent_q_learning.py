@@ -2,21 +2,13 @@ import numpy as np
 import gymnasium as gym
 from gymnasium.envs.registration import register
 import random
+from tqdm import tqdm
+import matplotlib.pyplot as plt
 
 register(
     id="MultiAgentFrozenLake",
     entry_point='multi_agent_frozen_lake:MultiAgentFrozenLakeEnv',
 )
-def print_action(actions):
-    for i, agent in enumerate(actions):
-        if actions[i] == 0:
-            print("Move left")
-        elif actions[i] == 1:
-            print("Move down")
-        elif actions[i] == 2:
-            print("Move right")
-        elif actions[i] == 3:
-            print("Move up")
 
 def print_optimal_policy(optimal_policy, env):
     """
@@ -48,22 +40,70 @@ def print_optimal_policy(optimal_policy, env):
                 elif optimal_policy[j] == 3:
                     print("↑", end=" ")
         print()
-def extract_optimal_policy(q_sa):
-    """Extracts the optimal policy from a Q-table.
+
+def plot_win_rate(win_rate, num_agents):
+    """
+    Plot the win rate
 
     Args:
-        q_table (numpy.ndarray): The Q-table from which to extract the policy.
+    win_rate: The win rate
 
     Returns:
-        numpy.ndarray: The optimal policy, where policy[state] = best_action.
+    None
     """
-    # Use np.argmax to find the index of the maximum Q-value for each state.
-    # This index corresponds to the optimal action for that state.
-    optimal_policy = np.argmax(q_sa, axis=1)
-    return optimal_policy
+    for agent, wins in win_rate.items():
+        plt.plot(wins, label='Agent ' + str(agent + 1))
+    plt.xlabel('Episodes')
+    plt.ylabel('Win Rate')
+    plt.title('Win Rate vs Episodes')
+    plt.legend()
+    # Save the plot
+    plt.savefig(f'win_rate_{num_agents}.png')
 
+def plot_average_reward(average_reward, num_agents):
+    """
+    Plot the average reward
 
-def agent_training(env, q_sa, gamma, alpha, epsilon, episodes, num_agents):
+    Args:
+    average_reward: The average reward
+
+    Returns:
+    None
+    """
+    for agent, rewards in average_reward.items():
+        plt.plot(rewards, label='Agent ' + str(agent + 1))
+    plt.xlabel('Episodes')
+    plt.ylabel('Average Reward')
+    plt.title('Average Reward vs Episodes')
+    plt.legend()
+    # Save the plot
+    plt.savefig(f'average_reward_{num_agents}.png')
+
+def plot_convergence_time(convergence_time, q_changes, num_agents):
+    """
+    Plot the convergence time
+
+    Args:
+    convergence_time: The convergence time
+
+    Returns:
+    None
+    """
+    for agent, time in q_changes.items():
+        plt.plot(time, label='Agent ' + str(agent + 1))
+    print(q_changes)
+    # Plot the convergence time points, it is a single point at episode x, so agent 1 might converge at episode 10, agent 2 at episode 20, etc.
+    #for agent, time in convergence_time.items():
+        #rint(q_changes[agent][time])
+        #plt.scatter(time, q_changes[agent][time], label='Agent ' + str(agent + 1) + ' Convergence Time', color='red')
+    plt.xlabel('Episodes')
+    plt.ylabel('Q-Value Change')
+    plt.title('Q-Value Change vs Episodes')
+    plt.legend()
+    # Save the plot
+    plt.savefig(f'q_changes_{num_agents}.png')
+
+def agent_training(env, q_sa, gamma, alpha, epsilon, episodes, num_agents, block=False, blocking_penalty=-0.1):
     """
     Train the agent using Q-learning
 
@@ -80,11 +120,17 @@ def agent_training(env, q_sa, gamma, alpha, epsilon, episodes, num_agents):
     The optimal policy
     """
 
-    for episode in range(episodes):
+    win_rate = {i: [] for i in range(num_agents)}
+    average_reward = {i: [] for i in range(num_agents)}
+    convergence_time = {i: 0 for i in range(num_agents)}
+    max_q_changes = {i: [] for i in range(num_agents)}
+    for episode in tqdm(range(episodes)):
         state = env.reset()
         state = state[0]
         terminated = False
-        #max_q_change = 0
+        win_count = [0 for i in range(num_agents)]
+        agent_average_reward = {i: 0 for i in range(num_agents)}
+        max_q_change = [0 for i in range(num_agents)]
         while not terminated:
             actions = ()
             if random.uniform(0, 1) < epsilon:
@@ -98,22 +144,43 @@ def agent_training(env, q_sa, gamma, alpha, epsilon, episodes, num_agents):
             
             next_state, reward, terminated, truncated, info = env.step(actions)
             rewards = info['rewards']
-            for agent, q in enumerate(q_sa):
-                #prev_state = q[state[agent], actions[agent]]
-                q[state[agent], actions[agent]] = q[state[agent], actions[agent]] + alpha * (rewards[agent] + gamma * np.max(q_sa[agent][next_state[agent]]) - q[state[agent], actions[agent]])
-                #max_q_change = max(max_q_change, abs(q[state[agent], actions[agent]] - prev_state))
+            
+            for agent, r in enumerate(rewards):
+                if info['goal_reached'][agent]:
+                    win_count[agent] += 1
 
+            for agent, q in enumerate(q_sa):
+                agent_average_reward[agent] += rewards[agent]
+                if block:
+                    if agent in info.get("blocking", {}):
+                        rewards[agent] += blocking_penalty
+                prev_state = q[state[agent], actions[agent]]
+                q[state[agent], actions[agent]] = q[state[agent], actions[agent]] + alpha * (rewards[agent] + gamma * np.max(q_sa[agent][next_state[agent]]) - q[state[agent], actions[agent]])
+                max_q_change[agent] = max(max_q_change[agent], abs(prev_state - q[state[agent], actions[agent]]))
+                
             state = next_state
+
+            for agent in range(num_agents):
+               if max_q_change[agent] < 1e-4 and convergence_time[agent] == 0:
+                    print("Agent ", agent + 1, " converged at episode ", episode)
+                    convergence_time[agent] = episode
+
+        for agent in range(num_agents):
+            average_reward[agent].append(agent_average_reward[agent])
+            max_q_changes[agent].append(max_q_change)
+
+        for agent, wins in enumerate(win_count):
+            win_rate[agent].append(wins / (episode + 1))
 
     optimal_policy = []
     for agent in range(num_agents):
-        optimal_policy.append(extract_optimal_policy(q_sa[agent]))
-    return optimal_policy
+        optimal_policy.append(np.argmax(q_sa[agent], axis=1))
+    return optimal_policy, win_rate, average_reward, convergence_time, max_q_changes
      
 
-def multi_agent_q_learning(agents, episodes, gamma, alpha, epsilon, render_mode, slippery, map_name, desc):
+def multi_agent_q_learning(agents, episodes, gamma, alpha, epsilon, render_mode, slippery, map_name, desc, block=False, blocking_penalty=-0.1, goal_reward=1, hole_reward=0, step_reward=0):
     # Ensure your custom environment file is in the Python path or working directory
-    env = gym.make("MultiAgentFrozenLake", is_slippery=slippery, map_name=map_name, agent_positions=agents, desc=desc)
+    env = gym.make("MultiAgentFrozenLake", is_slippery=slippery, map_name=map_name, agent_positions=agents, desc=desc, goal_reward=goal_reward, hole_reward=hole_reward, step_reward=step_reward)
 
     num_agents = len(agents)
 
@@ -133,14 +200,23 @@ def multi_agent_q_learning(agents, episodes, gamma, alpha, epsilon, render_mode,
             q_sa[agent][state, :] = 0
 
 
-    optimal_policy = agent_training(env, q_sa, gamma, alpha, epsilon, episodes, num_agents)
+    optimal_policy, win_rate, average_reward, convergence_time, max_q_changes = agent_training(env, q_sa, gamma, alpha, epsilon, episodes, num_agents, block, blocking_penalty)
+
+    plot_win_rate(win_rate, num_agents)
+    plot_average_reward(average_reward, num_agents)
+    plot_convergence_time(convergence_time, max_q_changes, num_agents)
+
+    for agent in range(num_agents):
+        print("Agent ", agent + 1, " optimal policy:")
+        print_optimal_policy(optimal_policy[agent], env)
     
     win = False
-    env = gym.make("MultiAgentFrozenLake", render_mode=render_mode, is_slippery=slippery, map_name=map_name, agent_positions=agents, desc=desc)
+    env = gym.make("MultiAgentFrozenLake", render_mode=render_mode, is_slippery=slippery, map_name=map_name, agent_positions=agents, desc=desc, goal_reward=goal_reward, hole_reward=hole_reward, step_reward=step_reward)
     observation, info = env.reset()
     timestep = 0
 
     env.render()
+    agent_termination = [False for i in range(num_agents)]
     while not win:
     
         actions = ()
@@ -148,18 +224,32 @@ def multi_agent_q_learning(agents, episodes, gamma, alpha, epsilon, render_mode,
             actions += (optimal_policy[agent][pos],)
 
         observation, reward, terminated, truncated, info = env.step(actions)
+
+        rewards = info['rewards']
+
         env.render()
-        if reward:
-            print("Reward: ", reward)
-            win = True
+
+        for agent, r in enumerate(rewards):
+            if info['goal_reached'][agent]:
+                print("Reward: ", r)
+                print("Won after {} timesteps".format(timestep+1))
+                print("Agent ", agent + 1, " wins")
+                win = True
 
         # Check if in a hole
         for pos in observation:
             if env.unwrapped.desc.flat[pos] == b'H':
-                print("Fell in a hole")
-        
-        if terminated:
+                #print("Fell in a hole")
+                pass
+        agent_terminated = info['terminated']
+
+        for agent, term in enumerate(agent_terminated):
+            if agent_terminated[agent]:
+                agent_termination[agent] = True
+
+        if all(agent_termination):
             print("Episode finished after {} timesteps".format(timestep+1))
+            agent_termination = [False for i in range(num_agents)]
             observation, info = env.reset()
 
         timestep += 1
