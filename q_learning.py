@@ -86,30 +86,33 @@ def q_learning(env, episodes=5000, gamma=0.90, alpha=0.08, epsilon=0.1):
 
      # Plotting
     episodes_grouped = range(0, episodes, 100)
-    plt.figure(figsize=(14, 6))
+    
 
-    plt.subplot(2, 2, 1)
+    
     plt.plot(episodes_grouped, cumulative_rewards)
     plt.xlabel('Episodes')
     plt.ylabel('Average Cumulative Reward')
     plt.title('Average Cumulative Reward per 100 Episodes')
+    # Save the plot
+    plt.savefig('cumulative_reward.png')
+    plt.close()
 
-    plt.subplot(2, 2, 2)
+    
     plt.plot(episodes_grouped, average_max_q_changes)
     plt.xlabel('Episodes')
     plt.ylabel('Average Max Q-Value Change')
     plt.title('Average Max Q-Value Change per 100 Episodes')
-
-    plt.subplot(2, 2, 3)
+    # Save the plot
+    plt.savefig('max_q_value_change.png')
+    plt.close()
+    
     plt.plot(policy_changes_smoothed)
     plt.xlabel('Episode')
     plt.ylabel('Average Policy Changes')
     plt.title('Average Policy Stability Change per 100 Episodes')
-
-
-    plt.tight_layout()
     # Save the plot
-    plt.savefig("q_learning.png")
+    plt.savefig('policy_changes.png')
+    plt.close()
 
     
     return optimal_policy

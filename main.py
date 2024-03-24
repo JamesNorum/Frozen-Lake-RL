@@ -6,6 +6,8 @@ from q_learning import q_learning
 from monte_carlo import every_visit_monte_carlo, first_visit_monte_carlo
 from eligibility_traces import sarsa_lambda_et
 from multi_agent_q_learning import multi_agent_q_learning
+from eval_q import eval_q
+from eval_dyn import evaldyn
 
 def print_optimal_policy(optimal_policy, env):
     """
@@ -62,10 +64,10 @@ def main():
     """
     # Command Line Arguments
     parser = argparse.ArgumentParser(description='Dynamic programming for Frozen Lake environment.')
-    parser.add_argument('-al', '--algorithm', type=str, default="d", choices={"d", "q", "mcfv", "mcev", "et", "ma"}, help='The algorithm to use for solving the Frozen Lake environment. Default is dynamic. The options are d for Dynamic, q for Q-Learning, mcfv for Monte Carlo: First Visit, mcev for Monte Carlo: Every Visit, e for Eligibility Traces, and ma for Multi Agent.')
+    parser.add_argument('-al', '--algorithm', type=str, default="d", choices={"d", "q", "mcfv", "mcev", "et", "ma", "evalq", "evaldyn"}, help='The algorithm to use for solving the Frozen Lake environment. Default is dynamic. The options are d for Dynamic, q for Q-Learning, mcfv for Monte Carlo: First Visit, mcev for Monte Carlo: Every Visit, e for Eligibility Traces, ma for Multi Agent, evalq for evaluating Q-Learning, evaldyn for evaluating Dynamic Programming.')
     parser.add_argument('-g', '--gamma', type=float, default=0.90, help='Discount factor gamma.')    
     parser.add_argument('-t', '--threshold', type=float, default=0.0001, help='Convergence threshold.')
-    parser.add_argument('-a', '--alpha', type=float, default=0.08, help='Alpha Value.')
+    parser.add_argument('-a', '--alpha', type=float, default=0.9, help='Alpha Value.')
     parser.add_argument('-e', '--epsilon', type=float, default=0.1, help='Epsilon Value.')
     parser.add_argument('-ep', '--episodes', type=int, default=5000, help='Number of episodes.')
     parser.add_argument('-l', '--lambda_', type=float, default=0.9, help='Lambda Value. Used for eligibility trace decay')
@@ -141,6 +143,12 @@ def main():
         desc = ["SFFHFFHF", "FHFFFFFF", "FFFHFFFF", "FFFFHHFG", "FHFFFFFF", "FFFHHHFF", "FFFFFFFF", "HFFFFFFF"]
         multi_agent_q_learning(agents=agents, episodes=episodes, gamma=gamma, alpha=alpha, epsilon=epsilon, render_mode=render_mode, slippery=slippery, map_name=map_name, desc=desc, block=blocking, blocking_penalty=blocking_penalty, goal_reward=goal_reward, hole_reward=hole_reward, step_reward=step_reward)
         return
+    elif algorithm == "evalq":
+        print("Evaluating Q-Learning")
+        optimal_policy = eval_q(env, episodes)
+    elif algorithm == "evaldyn":
+        print("Evaluating Dynamic Programming")
+        optimal_policy = evaldyn(env)
 
     """
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

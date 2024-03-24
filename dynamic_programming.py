@@ -60,8 +60,6 @@ def dynamic_programming(env, gamma=0.90, threshold=0.0001):
         policy[state] = np.argmax(q_pi)
 
 
-
-
      # Graphs
     plt.figure(figsize=(14, 6))
 

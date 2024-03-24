@@ -4,7 +4,10 @@ from gymnasium.envs.registration import register
 import random
 from tqdm import tqdm
 import matplotlib.pyplot as plt
-import seaborn as sns
+from matplotlib.patches import Polygon
+from matplotlib.colors import Normalize
+from matplotlib.cm import ScalarMappable
+import os
 
 register(
     id="MultiAgentFrozenLake",
@@ -42,7 +45,7 @@ def print_optimal_policy(optimal_policy, env):
                     print("↑", end=" ")
         print()
 
-def plot_win_count(win_count, num_agents):
+def plot_win_count(win_count, num_agents, file_path):
     """
     Plot a histogram of the win count, agents on the x-axis and win count on the y-axis
 
@@ -62,10 +65,10 @@ def plot_win_count(win_count, num_agents):
     plt.title('Win Count')
     plt.legend()
     # Save the plot
-    plt.savefig(f'multi_figures/win_count_{num_agents}.png')
+    plt.savefig(f'{file_path}/win_count_{num_agents}.png')
     plt.close()
     
-def reward_per_agent(reward, num_agents, num_episodes):
+def reward_per_agent(reward, num_agents, num_episodes, file_path):
     """
     Plot the average reward
 
@@ -89,10 +92,10 @@ def reward_per_agent(reward, num_agents, num_episodes):
     plt.title('Average Agent Reward vs Episodes')
     plt.legend()
     # Save the plot
-    plt.savefig(f'multi_figures/average_reward_per_agent_{num_agents}.png')
+    plt.savefig(f'{file_path}/average_reward_per_agent_{num_agents}.png')
     plt.close()
 
-def plot_convergence_time(q_changes, num_agents, num_episodes):
+def plot_convergence_time(q_changes, num_agents, num_episodes, file_path):
     """
     Plot the convergence time
 
@@ -120,10 +123,10 @@ def plot_convergence_time(q_changes, num_agents, num_episodes):
     
     plt.legend(loc='upper right')
     # Save the plot
-    plt.savefig(f'multi_figures/q_changes_{num_agents}.png')
+    plt.savefig(f'{file_path}/q_changes_{num_agents}.png')
     plt.close()
 
-def plot_reward_trends(rewards, num_agents, num_episodes):
+def plot_reward_trends(rewards, num_agents, num_episodes, file_path):
     """
     Plot the reward trend
 
@@ -144,7 +147,7 @@ def plot_reward_trends(rewards, num_agents, num_episodes):
     plt.ylabel('Reward')
     plt.title('Reward Trend Over Time')
     plt.legend()
-    plt.savefig(f'multi_figures/reward_trend_{num_agents}.png')
+    plt.savefig(f'{file_path}/reward_trend_{num_agents}.png')
     plt.close()
 
 
@@ -153,7 +156,7 @@ def position_to_coordinates(position, ncols):
     """Convert a linear position to 2D (row, col) coordinates."""
     return divmod(position, ncols)
 
-def plot_trajectories(agent_positions, nrows, ncols, holes, goal, num_agents, episode=None):
+def plot_trajectories(agent_positions, nrows, ncols, holes, goal, num_agents, episode, file_path):
     """
     Plot the trajectories of agents, including holes and the goal, with numbered grid squares and padding around the grid.
 
@@ -205,16 +208,13 @@ def plot_trajectories(agent_positions, nrows, ncols, holes, goal, num_agents, ep
     ax.legend()
     # Save the plot
     if episode is not None:
-        plt.savefig(f'multi_figures/trajectories_episode_{episode}_{num_agents}.png')
+        plt.savefig(f'{file_path}/trajectories_episode_{episode}_{num_agents}.png')
     else:
-        plt.savefig('multi_figures/trajectories_all_episodes.png')
+        plt.savefig(f'{file_path}/trajectories_all_episodes.png')
     plt.close()
 
-from matplotlib.patches import Polygon
-from matplotlib.colors import Normalize
-from matplotlib.cm import ScalarMappable
 
-def plot_quadrant_heatmap(q_table, nrows, ncols, agent_num, num_agents, cmap='viridis'):
+def plot_quadrant_heatmap(q_table, nrows, ncols, agent_num, num_agents, file_path, cmap='viridis'):
     """
     Plots a grid where each square is divided by an 'X'. Each quadrant is colored according
     to Q-values. Q-value texts are correctly positioned within their respective sections.
@@ -264,7 +264,7 @@ def plot_quadrant_heatmap(q_table, nrows, ncols, agent_num, num_agents, cmap='vi
     ax.set_aspect('equal')
     plt.title(f'Agent {agent_num + 1} Quadrant Heatmap')
     # Save the plot
-    plt.savefig(f'multi_figures/quadrant_heatmap_agent_{num_agents}_{agent_num}.png')
+    plt.savefig(f'{file_path}/quadrant_heatmap_agent_{num_agents}_{agent_num}.png')
     plt.close()
 
 def agent_training(env, q_sa, gamma, alpha, epsilon, episodes, num_agents, block=False, blocking_penalty=-0.1):
@@ -360,6 +360,12 @@ def multi_agent_q_learning(agents, episodes, gamma, alpha, epsilon, render_mode,
 
     num_agents = len(agents)
 
+    # plot save path multi_figures/agents_{num_agents}/.
+    if not os.path.exists(f'multi_figures/{agents}_{num_agents}'):
+        os.makedirs(f'multi_figures/{agents}_{num_agents}')
+
+    file_path = f'multi_figures/{agents}_{num_agents}'
+
     # Initialize the environment
     env.reset()
 
@@ -378,10 +384,10 @@ def multi_agent_q_learning(agents, episodes, gamma, alpha, epsilon, render_mode,
 
     optimal_policy, win_count, agent_reward, max_q_changes, rewards_per_episode, agent_positions, q_table = agent_training(env, q_sa, gamma, alpha, epsilon, episodes, num_agents, block, blocking_penalty)
 
-    plot_win_count(win_count, num_agents)
-    reward_per_agent(agent_reward, num_agents, episodes)
-    plot_convergence_time(max_q_changes, num_agents, episodes)
-    plot_reward_trends(rewards_per_episode, num_agents, episodes)
+    plot_win_count(win_count, num_agents, file_path)
+    reward_per_agent(agent_reward, num_agents, episodes, file_path)
+    plot_convergence_time(max_q_changes, num_agents, episodes, file_path)
+    plot_reward_trends(rewards_per_episode, num_agents, episodes, file_path)
     num_rows = env.unwrapped.nrow
     num_cols = env.unwrapped.ncol
     hole_positions = []
@@ -396,11 +402,11 @@ def multi_agent_q_learning(agents, episodes, gamma, alpha, epsilon, render_mode,
     # list of episodes to plot, the first, middle and last episode
     plot_episodes = [0, episodes//2, episodes-1]
     for episode in plot_episodes:
-        plot_trajectories(agent_positions, num_rows, num_cols, hole_positions, goal_position, num_agents, episode)
+        plot_trajectories(agent_positions, num_rows, num_cols, hole_positions, goal_position, num_agents, episode, file_path)
 
 
     for agent in range(num_agents):
-        plot_quadrant_heatmap(q_table[agent], num_rows, num_cols, agent, num_agents)
+        plot_quadrant_heatmap(q_table[agent], num_rows, num_cols, agent, num_agents, file_path)
     
 
     for agent in range(num_agents):
