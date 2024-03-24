@@ -7,7 +7,7 @@ from monte_carlo import every_visit_monte_carlo, first_visit_monte_carlo
 from eligibility_traces import sarsa_lambda_et
 from multi_agent_q_learning import multi_agent_q_learning
 from eval_q import eval_q
-from eval_dyn import evaldyn
+from eval_dynam import evaldyn
 
 def print_optimal_policy(optimal_policy, env):
     """

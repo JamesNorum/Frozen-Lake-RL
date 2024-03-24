@@ -5,9 +5,6 @@ import numpy as np
 
 def evaldyn(env):
     env.reset()
-    # render the environment
-    env.render()
-    env.close()
 
     # observation space - states 
     env.observation_space
@@ -21,7 +18,7 @@ def evaldyn(env):
     #          starting from the state s and by applying the action a
     
     # env.P[state][action]
-    env.P[0][1] #state 0, action 1
+    env.unwrapped.P[0][1] #state 0, action 1
     # output is a list having the following entries
     # (transition probability, next state, reward, Is terminal state?)
 
@@ -42,7 +39,7 @@ def evaldyn(env):
         valueFunctionVectorNextIteration=np.zeros(env.observation_space.n)
         for state in env.unwrapped.P:
             outerSum=0
-            for action in env.P[state]:
+            for action in env.unwrapped.P[state]:
                 innerSum=0
                 for probability, nextState, reward, isTerminalState in env.P[state][action]:
                     #print(probability, nextState, reward, isTerminalState)
@@ -71,5 +68,8 @@ def evaldyn(env):
     plt.ylabel('Norm of the value function vector')
     plt.savefig('convergence.png',dpi=600)
     plt.show()
+
+    print(valueFunctionVector)
+    input()
 
     return valueFunctionVector
