@@ -8,6 +8,7 @@ Also it now returns the optimal policy
 import numpy as np
 import matplotlib.pyplot as plt
 import pickle
+import gymnasium as gym
 
 def run(env, episodes, is_training=True, render=False):
 
@@ -134,5 +135,6 @@ def eval_q(env, episode):
 
 if __name__ == '__main__':
     # run(15000)
+    env = gym.make('FrozenLake-v1', desc=None, map_name="8x8", is_slippery=False)
 
-    run(1000, is_training=True, render=True)
+    run(env, 5000, is_training=True, render=False)

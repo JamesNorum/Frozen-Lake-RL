@@ -1,3 +1,7 @@
+"""
+This code was adapted from the existing FrozenLake-v1 environment in gymnasium.
+"""
+
 from contextlib import closing
 from io import StringIO
 from os import path
@@ -240,7 +244,6 @@ class MultiAgentFrozenLakeEnv(Env):
         self.nrow, self.ncol = nrow, ncol = desc.shape
         self.is_slippery = is_slippery
         self.terminated_agents = [False for _ in self.agent_positions]
-        # Initialize font; you may choose another font and size
         pygame.font.init()
         self.font = pygame.font.SysFont("Arial", 24)
 
@@ -327,7 +330,6 @@ class MultiAgentFrozenLakeEnv(Env):
     def calculate_new_position(self, current_position, action, is_slippery):
         import random
         if is_slippery:
-            # Define perpendicular actions
             if action == LEFT:
                 possible_actions = [LEFT, DOWN, UP]
             elif action == DOWN:
@@ -337,10 +339,9 @@ class MultiAgentFrozenLakeEnv(Env):
             elif action == UP:
                 possible_actions = [LEFT, RIGHT, UP]
             
-            # Choose an action with slipperiness taken into account
             action = random.choice(possible_actions)
         
-        # Original movement calculation
+        
         row, col = current_position
         if action == LEFT:
             col = max(col - 1, 0)
@@ -357,83 +358,75 @@ class MultiAgentFrozenLakeEnv(Env):
     def step(self, actions):
         assert len(actions) == len(self.agent_positions), "Each agent needs an action."
 
-        self.lastaction = actions  # For rendering
+        self.lastaction = actions  
 
-        rewards = [0 for _ in self.agent_positions]  # Initialize rewards for each agent
-        terminated = [False for _ in self.agent_positions]  # Initialize done flags for each agent
-        info = {}  # Placeholder for additional info
+        rewards = [0 for _ in self.agent_positions]
+        terminated = [False for _ in self.agent_positions]
+        info = {} 
         info["goal_reached"] = {i: None for i in range(len(self.agent_positions))}
 
-        # Calculate new positions without updating yet
+        
         new_positions = []
-        # Inside your step function
+        
         for agent_idx, action in enumerate(actions):
             if self.terminated_agents[agent_idx]:
                 new_positions.append(self.agent_positions[agent_idx])
                 continue
             current_position = self.agent_positions[agent_idx]
-            new_position = self.calculate_new_position(current_position, action, self.is_slippery) # Pass is_slippery here
+            new_position = self.calculate_new_position(current_position, action, self.is_slippery) 
             new_positions.append(new_position)
 
 
-        # Create a temporary list to track occupied positions for collision resolution
-        occupied_positions = set(self.agent_positions)  # Start with current positions to allow moving away
-        # update the occupied positions to only include non-terminated agents
+        # Handle collisions
+        occupied_positions = set(self.agent_positions) 
+        
         occupied_positions = set([pos for idx, pos in enumerate(self.agent_positions) if not self.terminated_agents[idx]])
         collisions_resolved_positions = []
         for idx, pos in enumerate(new_positions):
-            if pos in occupied_positions:
-                # Collision detected, revert to original position if new position is already occupied
+            if pos in occupied_positions: # Collision detected
                 collisions_resolved_positions.append(self.agent_positions[idx])
-            else:
-                # No collision, update occupied positions and move to the new position
+            else: # No collision
                 occupied_positions.add(pos)
                 collisions_resolved_positions.append(pos)
 
-        # Update agent positions after resolving collisions
+        
         self.agent_positions = collisions_resolved_positions
 
-        # Before updating states and rewards based on new positions
-        blocking_info = {}  # Placeholder for blocking info (agent_index: bool)
+        
+        blocking_info = {}  
         for i, pos_i in enumerate(new_positions):
             for j, pos_j in enumerate(new_positions):
                 if i != j and pos_i == pos_j:
-                    # Example condition for blocking, can be refined
-                    blocking_info[i] = True  # Mark agent i as involved in a blocking scenario
+                    blocking_info[i] = True  
 
-        # Pass blocking info to the info dictionary to use it later in training
         info["blocking"] = blocking_info
 
 
-        # Update states and rewards based on the new positions
         states = []
         for agent_idx, position in enumerate(self.agent_positions):
             row, col = position
             state = self.to_s(row, col)
             states.append(state)
 
-            # Determine the reward and termination
             letter = self.desc[row, col]
-            if letter == b'G':
-                rewards[agent_idx] = self.goal_reward  # Reward for reaching the goal
+            if letter == b'G': # Goal
+                rewards[agent_idx] = self.goal_reward 
                 terminated[agent_idx] = True
                 info["winning_agent"] = agent_idx
                 info["goal_reached"] = {i: True if i == agent_idx else False for i in range(len(self.agent_positions))}
-            elif letter == b'H':
-                rewards[agent_idx] = self.hole_reward  # Reward for falling into a hole
+            elif letter == b'H': # Hole
+                rewards[agent_idx] = self.hole_reward 
                 terminated[agent_idx] = True
-            else:
-                rewards[agent_idx] = self.step_reward  # Standard reward for non-terminal state
+            else: # living reward
+                rewards[agent_idx] = self.step_reward 
 
-            # Update terminated agents list
             if terminated[agent_idx]:
                 self.terminated_agents[agent_idx] = True
 
         any_terminated = any(terminated)
         
-        # Combine the states of all agents into a single state
         next_state = self.get_combined_state()
-        self.s = states  # Assuming self.s is meant to track states of all agents
+        self.s = states
 
         total_reward = sum(rewards)
 
@@ -446,30 +439,25 @@ class MultiAgentFrozenLakeEnv(Env):
 
 
     def get_combined_state(self):
-        """Combine agents' positions into a single state representation."""
         combined_state = []
         for row, col in self.agent_positions:
             combined_state.append(row * self.ncol + col)
         return tuple(combined_state)
 
     def to_s(self, row, col):
-        """Converts a (row, col) pair to a single integer representing the state."""
         return row * self.ncol + col
 
 
     def reset(self, *, seed: Optional[int] = None, options: Optional[dict] = None):
-        super().reset(seed=seed)  # It's good practice to call super().reset()
+        super().reset(seed=seed)  
         
-        # Reset or initialize agent positions
         self.agent_positions = self.reset_positions
-        # Set for the number of agents
         self.s = [self.to_s(*pos) for pos in self.agent_positions]
         self.terminated_agents = [False for _ in self.agent_positions]
 
-        # Create initial observations based on agent positions
         initial_obs = [self.to_s(*pos) for pos in self.agent_positions]
         
-        return tuple(initial_obs), {"prob": 1}  # Return observations and initial probability info
+        return tuple(initial_obs), {"prob": 1}  
 
     def render(self):
         if self.render_mode is None:
@@ -567,20 +555,19 @@ class MultiAgentFrozenLakeEnv(Env):
 
                 pygame.draw.rect(self.window_surface, (180, 200, 230), rect, 1)
                 
-        # Render each agent
         for agent_idx, (agent_row, agent_col) in enumerate(self.agent_positions):
             pos = (agent_col * self.cell_size[0], agent_row * self.cell_size[1])
             last_action = self.lastaction[agent_idx] if self.lastaction is not None else 1
-            # Check if the agent is on a hole and has terminated
+            
             if self.terminated_agents[agent_idx] and self.desc[agent_row][agent_col] == b'H':
                 self.window_surface.blit(self.cracked_hole_img, pos)
-            # Render the elf on the goal or any other tile
+            
             else:
                 self.window_surface.blit(self.elf_images[last_action], pos)
 
-            # Render the agent number. Adjust the position as needed.
+            
             agent_text = self.font.render(str(agent_idx + 1), True, (0, 0, 0))
-            text_pos = pos[0] + 5, pos[1] + 5  # Adjust as needed
+            text_pos = pos[0] + 5, pos[1] + 5  
             self.window_surface.blit(agent_text, text_pos)
 
 
