@@ -213,7 +213,7 @@ class MultiAgentFrozenLakeEnv(Env):
 
     metadata = {
         "render_modes": ["human", "ansi", "rgb_array"],
-        "render_fps": 8,
+        "render_fps": 3,
     }
 
     def __init__(
@@ -440,6 +440,7 @@ class MultiAgentFrozenLakeEnv(Env):
         info["rewards"] = rewards
         info["states"] = states
         info["terminated"] = terminated
+        info["occupied_positions"] = occupied_positions
 
         return next_state, total_reward, any_terminated, False, info
 
