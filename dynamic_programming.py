@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 # python dynamic_programming.py -s -d "SFFHFHFF, FHHFFFFH, FFFHFFHF, HFFFHHFG, FFFHFFFF, FHHFHFHF, FFFHFHFF, FFFHFHFF"
 
 
-def dynamic_programming(env, gamma=0.90, threshold=0.0001):
+def dynamic_programming(env, gamma=0.90, threshold=0.000001):
     """
     Dynamic programming algorithm to solve the Frozen Lake environment
 
@@ -60,7 +60,7 @@ def dynamic_programming(env, gamma=0.90, threshold=0.0001):
         policy[state] = np.argmax(q_pi)
 
 
-     # Graphs
+    # Graphs
     plt.figure(figsize=(14, 6))
 
     plt.subplot(1, 2, 1)
