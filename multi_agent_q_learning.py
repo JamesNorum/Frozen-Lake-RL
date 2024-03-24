@@ -4,6 +4,7 @@ from gymnasium.envs.registration import register
 import random
 from tqdm import tqdm
 import matplotlib.pyplot as plt
+import seaborn as sns
 
 register(
     id="MultiAgentFrozenLake",
@@ -61,10 +62,10 @@ def plot_win_count(win_count, num_agents):
     plt.title('Win Count')
     plt.legend()
     # Save the plot
-    plt.savefig(f'win_count_{num_agents}.png')
+    plt.savefig(f'multi_figures/win_count_{num_agents}.png')
     plt.close()
     
-def reward_per_agent(reward, num_agents):
+def reward_per_agent(reward, num_agents, num_episodes):
     """
     Plot the average reward
 
@@ -75,21 +76,23 @@ def reward_per_agent(reward, num_agents):
     None
     """
     average_reward = {i: [] for i in range(num_agents)}
-    # average the rewards for each agent over every 100 episodes
+    skip = num_episodes // 100
     for agent, rewards in reward.items():
-        average_reward[agent] = [sum(rewards[i:i+100])/100 for i in range(0, len(rewards), 100)]
+        average_reward[agent] = [sum(rewards[i:i+skip])/skip for i in range(0, len(rewards), skip)]
+
+    time = [i for i in range(0, len(reward[0]), skip)]
         
     for agent, rewards in average_reward.items():
-        plt.plot(rewards, label='Agent ' + str(agent + 1))
+        plt.plot(time, rewards, label='Agent ' + str(agent + 1))
     plt.xlabel('Episodes')
     plt.ylabel('Average Reward')
     plt.title('Average Agent Reward vs Episodes')
     plt.legend()
     # Save the plot
-    plt.savefig(f'average_reward_per_agent_{num_agents}.png')
+    plt.savefig(f'multi_figures/average_reward_per_agent_{num_agents}.png')
     plt.close()
 
-def plot_convergence_time(convergence_time, q_changes, num_agents):
+def plot_convergence_time(q_changes, num_agents, num_episodes):
     """
     Plot the convergence time
 
@@ -101,36 +104,26 @@ def plot_convergence_time(convergence_time, q_changes, num_agents):
     """
     average_q_changes = {i: [] for i in range(num_agents)}
     # average the q-value changes for each agent over every 100 episodes
+    skip = num_episodes // 100
     for agent, q_changes in q_changes.items():
-        average_q_changes[agent] = [sum(q_changes[i:i+100])/100 for i in range(0, len(q_changes), 100)]
+        average_q_changes[agent] = [sum(q_changes[i:i+skip])/skip for i in range(0, len(q_changes), skip)]
 
     # plot the average q-value changes for each agent over the enire episode count
     # time is the episodes skipped by 100
-    time = [i for i in range(0, len(q_changes), 100)]
+    time = [i for i in range(0, len(q_changes), skip)]
     for agent, q_changes in average_q_changes.items():
         plt.plot(time, q_changes, label='Agent ' + str(agent + 1))
-
-    for agent, time in convergence_time.items():
-        if time == 0:
-            print("Agent ", agent + 1, " did not converge")
-            # plot at the top left of the plot that the agent did not converge
-            plt.axvline(-100, 100, color='r', linestyle='--', label='Agent ' + str(agent + 1) + ' Did Not Converge')
-            continue
-        print("Agent ", agent + 1, " converged at episode ", time)
-        plt.axvline(x=time, color='r', linestyle='--', label='Agent ' + str(agent + 1) + ' Convergence Time')
-        plt.text(time, 0.2, 'Agent ' + str(agent + 1) + 'Time: ' + str(time) , rotation=90)
         
-    
     plt.xlabel('Episodes')
     plt.ylabel('Q-Value Change')
     plt.title('Q-Value Change vs Episodes')
     
     plt.legend(loc='upper right')
     # Save the plot
-    plt.savefig(f'q_changes_{num_agents}.png')
+    plt.savefig(f'multi_figures/q_changes_{num_agents}.png')
     plt.close()
 
-def plot_reward_trends(rewards, num_agents):
+def plot_reward_trends(rewards, num_agents, num_episodes):
     """
     Plot the reward trend
 
@@ -141,8 +134,9 @@ def plot_reward_trends(rewards, num_agents):
     Returns:
     None
     """
-    average_reward = [sum(rewards[i:i+100])/100 for i in range(0, len(rewards), 100)]
-    time = [i for i in range(0, len(rewards), 100)]
+    skip = num_episodes // 100
+    average_reward = [sum(rewards[i:i+skip])/skip for i in range(0, len(rewards), skip)]
+    time = [i for i in range(0, len(rewards), skip)]
 
     plt.figure(figsize=(10, 5))
     plt.plot(time, average_reward, label='Average Reward')
@@ -150,7 +144,7 @@ def plot_reward_trends(rewards, num_agents):
     plt.ylabel('Reward')
     plt.title('Reward Trend Over Time')
     plt.legend()
-    plt.savefig(f'reward_trend_{num_agents}.png')
+    plt.savefig(f'multi_figures/reward_trend_{num_agents}.png')
     plt.close()
 
 
@@ -194,7 +188,7 @@ def plot_trajectories(agent_positions, nrows, ncols, holes, goal, num_agents, ep
 
     # Plot goal
     goal_row, goal_col = position_to_coordinates(goal, ncols)
-    ax.scatter(goal_col, goal_row, color='gold', marker='*', s=200, label='Goal')
+    ax.scatter(goal_col, goal_row, color='green', marker='*', s=200, label='Goal')
 
     colors = plt.cm.viridis(np.linspace(0, 1, len(agent_positions)))
 
@@ -211,22 +205,67 @@ def plot_trajectories(agent_positions, nrows, ncols, holes, goal, num_agents, ep
     ax.legend()
     # Save the plot
     if episode is not None:
-        plt.savefig(f'trajectories_episode_{episode}_{num_agents}.png')
+        plt.savefig(f'multi_figures/trajectories_episode_{episode}_{num_agents}.png')
     else:
-        plt.savefig('trajectories_all_episodes.png')
+        plt.savefig('multi_figures/trajectories_all_episodes.png')
     plt.close()
 
+from matplotlib.patches import Polygon
+from matplotlib.colors import Normalize
+from matplotlib.cm import ScalarMappable
 
- import seaborn as sns
+def plot_quadrant_heatmap(q_table, nrows, ncols, agent_num, num_agents, cmap='viridis'):
+    """
+    Plots a grid where each square is divided by an 'X'. Each quadrant is colored according
+    to Q-values. Q-value texts are correctly positioned within their respective sections.
+    """
+    # Setup for heatmap coloring
+    norm = Normalize(vmin=np.min(q_table), vmax=np.max(q_table))
+    mapper = ScalarMappable(norm=norm, cmap=cmap)
 
-def plot_q_values(q_table, action_names):
-    fig, axs = plt.subplots(1, len(action_names), figsize=(20, 5))
-    for idx, action in enumerate(action_names):
-        sns.heatmap(q_table[:, idx].reshape(map_size), annot=True, fmt=".2f", ax=axs[idx], cmap='viridis')
-        axs[idx].set_title(f'Action: {action}')
-    plt.show()
+    fig, ax = plt.subplots(figsize=(ncols, nrows))
+    ax.set_xlim(0, ncols)
+    ax.set_ylim(0, nrows)
+    ax.invert_yaxis()
 
+    for state in range(len(q_table)):
+        q_values = q_table[state]
+        row, col = divmod(state, ncols)
 
+        # Correct positions for Q-value text annotations
+        text_positions = {
+            0: (col + 0.2, row + 0.5),  # Left
+            1: (col + 0.5, row + 0.8),  # Down
+            2: (col + 0.8, row + 0.5),  # Right
+            3: (col + 0.5, row + 0.2),  # Up
+        }
+
+        # Colors for each quadrant based on Q-values
+        colors = [mapper.to_rgba(q_value) for q_value in q_values]
+
+        # Plotting each quadrant with colored patches
+        quadrants = [
+            [(col, row), (col + 0.5, row + 0.5), (col, row + 1)], # Left
+            [(col, row + 1), (col + 0.5, row + 0.5), (col + 1, row + 1)], # Down
+            [(col + 1, row), (col + 0.5, row + 0.5), (col + 1, row + 1)], # Right
+            [(col, row), (col + 0.5, row + 0.5), (col + 1, row)], # Up
+        ]
+
+        for idx, vertices in enumerate(quadrants):
+            poly = Polygon(vertices, color=colors[idx], ec='k')
+            ax.add_patch(poly)
+            tx, ty = text_positions[idx]
+            ax.text(tx, ty, f'{q_values[idx]:.2f}', ha='center', va='center', color='white', fontsize=9)
+
+    # Draw grid lines
+    ax.set_xticks(np.arange(ncols + 1))
+    ax.set_yticks(np.arange(nrows + 1))
+    ax.grid(which='major', color='k', linestyle='-', linewidth=0.5)
+    ax.set_aspect('equal')
+    plt.title(f'Agent {agent_num + 1} Quadrant Heatmap')
+    # Save the plot
+    plt.savefig(f'multi_figures/quadrant_heatmap_agent_{num_agents}_{agent_num}.png')
+    plt.close()
 
 def agent_training(env, q_sa, gamma, alpha, epsilon, episodes, num_agents, block=False, blocking_penalty=-0.1):
     """
@@ -248,7 +287,6 @@ def agent_training(env, q_sa, gamma, alpha, epsilon, episodes, num_agents, block
     win_count = {i: [] for i in range(num_agents)}
     agent_reward = {i: [] for i in range(num_agents)}
     rewards_per_episode = []
-    convergence_time = {i: 0 for i in range(num_agents)}
     max_q_changes = {i: [] for i in range(num_agents)}
     agent_positions = {i: [] for i in range(num_agents)}
     for episode in tqdm(range(episodes)):
@@ -297,12 +335,9 @@ def agent_training(env, q_sa, gamma, alpha, epsilon, episodes, num_agents, block
                 prev_state = q[state[agent], actions[agent]]
                 q[state[agent], actions[agent]] = q[state[agent], actions[agent]] + alpha * (rewards[agent] + gamma * np.max(q_sa[agent][next_state[agent]]) - q[state[agent], actions[agent]])
                 max_q_change[agent] = max(max_q_change[agent], abs(prev_state - q[state[agent], actions[agent]]))
-                
+            
             state = next_state
 
-            for agent in range(num_agents):
-               if max_q_change[agent] < 1e-3 and convergence_time[agent] == 0:
-                   convergence_time[agent] = episode
 
         for agent in range(num_agents):
             agent_reward[agent].append(agent_episode_reward[agent])
@@ -316,7 +351,7 @@ def agent_training(env, q_sa, gamma, alpha, epsilon, episodes, num_agents, block
     optimal_policy = []
     for agent in range(num_agents):
         optimal_policy.append(np.argmax(q_sa[agent], axis=1))
-    return optimal_policy, win_count, agent_reward, convergence_time, max_q_changes, rewards_per_episode, agent_positions
+    return optimal_policy, win_count, agent_reward, max_q_changes, rewards_per_episode, agent_positions, q_sa
      
 
 def multi_agent_q_learning(agents, episodes, gamma, alpha, epsilon, render_mode, slippery, map_name, desc, block=False, blocking_penalty=-0.1, goal_reward=1, hole_reward=0, step_reward=0):
@@ -341,12 +376,12 @@ def multi_agent_q_learning(agents, episodes, gamma, alpha, epsilon, render_mode,
             q_sa[agent][state, :] = 0
 
 
-    optimal_policy, win_count, agent_reward, convergence_time, max_q_changes, rewards_per_episode, agent_positions = agent_training(env, q_sa, gamma, alpha, epsilon, episodes, num_agents, block, blocking_penalty)
+    optimal_policy, win_count, agent_reward, max_q_changes, rewards_per_episode, agent_positions, q_table = agent_training(env, q_sa, gamma, alpha, epsilon, episodes, num_agents, block, blocking_penalty)
 
     plot_win_count(win_count, num_agents)
-    reward_per_agent(agent_reward, num_agents)
-    plot_convergence_time(convergence_time, max_q_changes, num_agents)
-    plot_reward_trends(rewards_per_episode, num_agents)
+    reward_per_agent(agent_reward, num_agents, episodes)
+    plot_convergence_time(max_q_changes, num_agents, episodes)
+    plot_reward_trends(rewards_per_episode, num_agents, episodes)
     num_rows = env.unwrapped.nrow
     num_cols = env.unwrapped.ncol
     hole_positions = []
@@ -358,9 +393,14 @@ def multi_agent_q_learning(agents, episodes, gamma, alpha, epsilon, render_mode,
             elif env.unwrapped.desc[i, j] == b'G':
                 goal_position = i * num_rows + j
 
-    plot_trajectories(agent_positions, num_rows, num_cols, hole_positions, goal_position, num_agents, episode=0)
-    plot_trajectories(agent_positions, num_rows, num_cols, hole_positions, goal_position, num_agents, episode=499)
-    plot_trajectories(agent_positions, num_rows, num_cols, hole_positions, goal_position, num_agents, episode=999)
+    # list of episodes to plot, the first, middle and last episode
+    plot_episodes = [0, episodes//2, episodes-1]
+    for episode in plot_episodes:
+        plot_trajectories(agent_positions, num_rows, num_cols, hole_positions, goal_position, num_agents, episode)
+
+
+    for agent in range(num_agents):
+        plot_quadrant_heatmap(q_table[agent], num_rows, num_cols, agent, num_agents)
     
 
     for agent in range(num_agents):
