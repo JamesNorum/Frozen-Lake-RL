@@ -52,7 +52,7 @@ def play(env):
                                 sys.exit()
 
 if __name__ == "__main__":
-    environment = gym.make("FrozenLake-v1", is_slippery=True, render_mode="human")
+    environment = gym.make("FrozenLake-v1", is_slippery=False, render_mode="human")
     try:
         play(environment)
     finally:

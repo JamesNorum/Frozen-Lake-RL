@@ -130,7 +130,7 @@ def main():
         optimal_policy = dynamic_programming(env=env, gamma=gamma, threshold=threshold, experiment=experiment)
     elif algorithm == "q":
         print("Q-Learning")
-        optimal_policy = q_learning(env=env, episodes=episodes, gamma=gamma, alpha=alpha, epsilon=epsilon)
+        optimal_policy = q_learning(env=env, episodes=episodes, gamma=gamma, alpha=alpha, epsilon=epsilon, experiment=experiment)
     elif algorithm == "mcfv":
         print("Monte Carlo: First Visit")
         optimal_policy = first_visit_monte_carlo(env=env, episodes=episodes, gamma=gamma, epsilon=epsilon)

@@ -8,7 +8,7 @@ def calculate_moving_average(data, window_size):
     return np.convolve(data, np.ones(window_size)/window_size, mode='valid')
 
 
-def q_learning(env, episodes=5000, gamma=0.90, alpha=0.08, epsilon=0.1):
+def q_experiment(env, episodes=5000, gamma=0.90, alpha=0.08, epsilon=0.1, file_name='q_exp/q_exp'):
     """
     Q-Learning algorithm to solve the Frozen Lake environment
 
@@ -94,7 +94,7 @@ def q_learning(env, episodes=5000, gamma=0.90, alpha=0.08, epsilon=0.1):
     plt.ylabel('Average Cumulative Reward')
     plt.title('Average Cumulative Reward per 100 Episodes')
     # Save the plot
-    plt.savefig('cumulative_reward.png')
+    plt.savefig(f'{file_name}_cumulative_reward.png')
     plt.close()
 
     
@@ -103,7 +103,7 @@ def q_learning(env, episodes=5000, gamma=0.90, alpha=0.08, epsilon=0.1):
     plt.ylabel('Average Max Q-Value Change')
     plt.title('Average Max Q-Value Change per 100 Episodes')
     # Save the plot
-    plt.savefig('max_q_value_change.png')
+    plt.savefig(f'{file_name}_max_q_value_change.png')
     plt.close()
     
     plt.plot(policy_changes_smoothed)
@@ -111,11 +111,122 @@ def q_learning(env, episodes=5000, gamma=0.90, alpha=0.08, epsilon=0.1):
     plt.ylabel('Average Policy Changes')
     plt.title('Average Policy Stability Change per 100 Episodes')
     # Save the plot
-    plt.savefig('policy_changes.png')
+    plt.savefig(f'{file_name}_policy_changes.png')
     plt.close()
 
     
-    return optimal_policy
+    return optimal_policy, q_sa, cumulative_rewards, average_max_q_changes, policy_changes_smoothed, episodes_grouped
+
+def policy_eval(env, experiments):
+    """
+    Evaluate all the experiments policies and return the best policy, breaking ties by choosing the policy with the highest average cumulative reward
+
+    Args:
+    env: Frozen Lake environment
+    experiments: List of experiments to evaluate
+
+    Returns:
+    best_policy: The best policy
+    """
+    best_policy = None
+    best_steps = float('inf')
+    best_sum = float('inf')
+    best_convergence = float('inf')
+    for episode, g, a, e, policy, q_sa, cumulative_rewards, average_max_q_changes, policy_changes_smoothed, episodes_grouped in tqdm(experiments, desc='Evaluating Policies'):
+        steps = 0
+        state = env.reset()
+        state = state[0]
+        terminated = False
+        reward = 0
+        while not reward == 1:
+            state, reward, terminated, truncated, info = env.step(policy[state])
+            steps += 1
+            if steps > 1000:
+                break
+        if steps < best_steps:
+            best_policy = policy
+            best_steps = steps
+            best_sum = np.sum(cumulative_rewards)
+            best_convergence = np.mean(policy_changes_smoothed)
+        elif steps == best_steps:
+            sum_values = np.sum(cumulative_rewards)
+            if sum_values < best_sum:
+                best_policy = policy
+                best_steps = steps
+                best_sum = sum_values
+                best_convergence = np.mean(policy_changes_smoothed)
+            elif sum_values == best_sum:
+                if np.mean(policy_changes_smoothed) < best_convergence:
+                    best_policy = policy
+                    best_steps = steps
+                    best_sum = sum_values
+                    best_convergence = np.mean(policy_changes_smoothed)
+    return best_policy
+
+def plot_experiment(experiments, file_name='experiment'):
+    """
+    Plot the experiments results
+    """
+    for episode, g, a, e, policy, q_sa, cumulative_rewards, average_max_q_changes, policy_changes_smoothed, episodes_grouped in experiments:
+        plt.plot(episodes_grouped, cumulative_rewards, label=f'{episode}_{g}_{a}_{e}')
+    plt.xlabel('Episodes')
+    plt.ylabel('Average Cumulative Reward')
+    plt.title('Average Cumulative Reward per 100 Episodes')
+    plt.legend()
+    # Save the plot
+    plt.savefig(f'{file_name}_cumulative_reward.png')
+    plt.close()
+
+    for episode, g, a, e, policy, q_sa, cumulative_rewards, average_max_q_changes, policy_changes_smoothed, episodes_grouped in experiments:
+        plt.plot(episodes_grouped, average_max_q_changes, label=f'{episode}_{g}_{a}_{e}')
+    plt.xlabel('Episodes')
+    plt.ylabel('Average Max Q-Value Change')
+    plt.title('Average Max Q-Value Change per 100 Episodes')
+    plt.legend()
+    # Save the plot
+    plt.savefig(f'{file_name}_max_q_value_change.png')
+    plt.close()
+
+    for episode, g, a, e, policy, q_sa, cumulative_rewards, average_max_q_changes, policy_changes_smoothed, episodes_grouped in experiments:
+        plt.plot(policy_changes_smoothed, label=f'{episode}_{g}_{a}_{e}')
+    plt.xlabel('Episode')
+    plt.ylabel('Average Policy Changes')
+    plt.title('Average Policy Stability Change per 100 Episodes')
+    plt.legend()
+    # Save the plot
+    plt.savefig(f'{file_name}_policy_changes.png')
+    plt.close()
+
+
+def q_learning(env, episodes=5000, gamma=0.90, alpha=0.08, epsilon=0.1, experiment=False):
+    if experiment:
+        print("Running experiment")
+        episodes = [100, 1000, 5000, 10000]
+        gamma = [0.7, 0.90, 0.99]
+        alpha = [0.01, 0.3, 0.9]
+        epsilon = [0.1, 0.3, 0.5]
+    else:
+        episodes = [episodes]
+        gamma = [gamma]
+        alpha = [alpha]
+        epsilon = [epsilon]
+    experiments = []
+
+    for episode in episodes:
+        for g in gamma:
+            for a in alpha:
+                for e in epsilon:
+                    file_name = f'q_exp/{episode}_{g}_{a}_{e}'
+                    optimal_policy, q_sa, cumulative_rewards, average_max_q_changes, policy_changes_smoothed, episodes_grouped = q_experiment(env, episode, g, a, e, file_name)
+                    experiments.append((episode, g, a, e, optimal_policy, q_sa, cumulative_rewards, average_max_q_changes, policy_changes_smoothed, episodes_grouped))
+    
+    if experiment:
+        plot_experiment(experiments, file_name='q_exp/experiment')
+
+
+    best_policy = policy_eval(env, experiments)
+    return best_policy
+
 
 
 """
