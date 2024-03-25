@@ -56,7 +56,6 @@ def plot_win_count(win_count, num_agents, file_path):
     Returns:
     None
     """
-    # Plot the agents on the x-axis and the win count on the y-axis, for each agent place their bars at their agent number on the x-axis
     for agent, wins in win_count.items():
         plt.bar(agent, len(wins), label='Agent ' + str(agent + 1))
     
@@ -70,10 +69,10 @@ def plot_win_count(win_count, num_agents, file_path):
     
 def reward_per_agent(reward, num_agents, num_episodes, file_path):
     """
-    Plot the average reward
+    Plot the average reward per agent
 
     Args:
-    average_reward: The average reward
+    reward: The reward for all agents
 
     Returns:
     None
@@ -153,7 +152,17 @@ def plot_reward_trends(rewards, num_agents, num_episodes, file_path):
 
 
 def position_to_coordinates(position, ncols):
-    """Convert a linear position to 2D (row, col) coordinates."""
+    """
+    Convert a position in the grid to row and column coordinates.
+
+    Args:
+    position: The position in the grid.
+    ncols: The number of columns in the grid.
+
+    Returns:
+    row: The row coordinate.
+    col: The column coordinate.
+    """
     return divmod(position, ncols)
 
 def plot_trajectories(agent_positions, nrows, ncols, holes, goal, num_agents, episode, file_path):
@@ -161,12 +170,15 @@ def plot_trajectories(agent_positions, nrows, ncols, holes, goal, num_agents, ep
     Plot the trajectories of agents, including holes and the goal, with numbered grid squares and padding around the grid.
 
     Args:
-    - agent_positions: Dictionary with keys as agent IDs and values as lists of lists of positions for each episode.
-    - nrows: The number of rows in the grid.
-    - ncols: The number of columns in the grid.
-    - holes: A list of positions representing holes in the grid.
-    - goal: The position of the goal in the grid.
-    - episode: Optional integer specifying which episode to plot. If None, plots all episodes.
+    agent_positions: Dictionary with keys as agent IDs and values as lists of lists of positions for each episode.
+    nrows: The number of rows in the grid.
+    ncols: The number of columns in the grid.
+    holes: A list of positions representing holes in the grid.
+    goal: The position of the goal in the grid.
+    episode: Optional integer specifying which episode to plot. If None, plots all episodes.
+
+    Returns:
+    None
     """
     padding = 0.5  # Padding around the grid
     plt.figure(figsize=(8, 8))
@@ -216,10 +228,20 @@ def plot_trajectories(agent_positions, nrows, ncols, holes, goal, num_agents, ep
 
 def plot_quadrant_heatmap(q_table, nrows, ncols, agent_num, num_agents, file_path, cmap='viridis'):
     """
-    Plots a grid where each square is divided by an 'X'. Each quadrant is colored according
-    to Q-values. Q-value texts are correctly positioned within their respective sections.
+    Plot a heatmap of the Q-values for each quadrant of the grid.s
+
+    Args:
+    q_table: The Q-table.
+    nrows: The number of rows in the grid.
+    ncols: The number of columns in the grid.
+    agent_num: The agent number.
+    num_agents: The number of agents.
+    file_path: The file path to save the plot.
+    cmap: The colormap to use for the heatmap.
+
+    Returns:
+    None
     """
-    # Setup for heatmap coloring
     norm = Normalize(vmin=np.min(q_table), vmax=np.max(q_table))
     mapper = ScalarMappable(norm=norm, cmap=cmap)
 
@@ -232,7 +254,7 @@ def plot_quadrant_heatmap(q_table, nrows, ncols, agent_num, num_agents, file_pat
         q_values = q_table[state]
         row, col = divmod(state, ncols)
 
-        # Correct positions for Q-value text annotations
+        
         text_positions = {
             0: (col + 0.2, row + 0.5),  # Left
             1: (col + 0.5, row + 0.8),  # Down
@@ -240,10 +262,10 @@ def plot_quadrant_heatmap(q_table, nrows, ncols, agent_num, num_agents, file_pat
             3: (col + 0.5, row + 0.2),  # Up
         }
 
-        # Colors for each quadrant based on Q-values
+        
         colors = [mapper.to_rgba(q_value) for q_value in q_values]
 
-        # Plotting each quadrant with colored patches
+        
         quadrants = [
             [(col, row), (col + 0.5, row + 0.5), (col, row + 1)], # Left
             [(col, row + 1), (col + 0.5, row + 0.5), (col + 1, row + 1)], # Down
@@ -257,13 +279,12 @@ def plot_quadrant_heatmap(q_table, nrows, ncols, agent_num, num_agents, file_pat
             tx, ty = text_positions[idx]
             ax.text(tx, ty, f'{q_values[idx]:.2f}', ha='center', va='center', color='white', fontsize=9)
 
-    # Draw grid lines
+    
     ax.set_xticks(np.arange(ncols + 1))
     ax.set_yticks(np.arange(nrows + 1))
     ax.grid(which='major', color='k', linestyle='-', linewidth=0.5)
     ax.set_aspect('equal')
     plt.title(f'Agent {agent_num + 1} Quadrant Heatmap')
-    # Save the plot
     plt.savefig(f'{file_path}/quadrant_heatmap_agent_{num_agents}_{agent_num}.png')
     plt.close()
 
@@ -355,18 +376,16 @@ def agent_training(env, q_sa, gamma, alpha, epsilon, episodes, num_agents, block
      
 
 def multi_agent_q_learning(agents, episodes, gamma, alpha, epsilon, render_mode, slippery, map_name, desc, block=False, blocking_penalty=-0.1, goal_reward=1, hole_reward=0, step_reward=0):
-    # Ensure your custom environment file is in the Python path or working directory
+
     env = gym.make("MultiAgentFrozenLake", is_slippery=slippery, map_name=map_name, agent_positions=agents, desc=desc, goal_reward=goal_reward, hole_reward=hole_reward, step_reward=step_reward)
 
     num_agents = len(agents)
 
-    # plot save path multi_figures/agents_{num_agents}/.
     if not os.path.exists(f'multi_figures/{agents}_{num_agents}'):
         os.makedirs(f'multi_figures/{agents}_{num_agents}')
 
     file_path = f'multi_figures/{agents}_{num_agents}'
 
-    # Initialize the environment
     env.reset()
 
     q_sa = [np.random.rand(env.observation_space.n, env.action_space.n) for i in range(num_agents)]

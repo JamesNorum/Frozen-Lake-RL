@@ -67,7 +67,8 @@ def main():
     parser = argparse.ArgumentParser(description='Dynamic programming for Frozen Lake environment.')
     parser.add_argument('-al', '--algorithm', type=str, default="d", choices={"d", "q", "mcfv", "mcev", "et", "ma", "evalq", "evaldyn", "evalet"}, help='The algorithm to use for solving the Frozen Lake environment. Default is dynamic. The options are d for Dynamic, q for Q-Learning, mcfv for Monte Carlo: First Visit, mcev for Monte Carlo: Every Visit, e for Eligibility Traces, ma for Multi Agent, evalq for evaluating Q-Learning, evaldyn for evaluating Dynamic Programming.')
     parser.add_argument('-g', '--gamma', type=float, default=0.90, help='Discount factor gamma.')    
-    parser.add_argument('-t', '--threshold', type=float, default=0.0001, help='Convergence threshold.')
+    parser.add_argument('-t', '--threshold', type=float, default=0.000001, help='Convergence threshold.')
+    parser.add_argument('-exp', '--experiment', action='store_true', help='Use experiments mode, Default is false.')
     parser.add_argument('-a', '--alpha', type=float, default=0.9, help='Alpha Value.')
     parser.add_argument('-e', '--epsilon', type=float, default=0.1, help='Epsilon Value.')
     parser.add_argument('-ep', '--episodes', type=int, default=5000, help='Number of episodes.')
@@ -90,6 +91,7 @@ def main():
     epsilon = args.epsilon
     alpha = args.alpha
     threshold = args.threshold
+    experiment = args.experiment
     episodes = args.episodes
     lambda_ = args.lambda_
     desc = args.desc
@@ -125,7 +127,7 @@ def main():
     env = gym.make('FrozenLake-v1', desc=desc, map_name=map_name, is_slippery=slippery)
     if algorithm == "d":
         print("Dynamic Programming")
-        optimal_policy = dynamic_programming(env=env, gamma=gamma, threshold=threshold)
+        optimal_policy = dynamic_programming(env=env, gamma=gamma, threshold=threshold, experiment=experiment)
     elif algorithm == "q":
         print("Q-Learning")
         optimal_policy = q_learning(env=env, episodes=episodes, gamma=gamma, alpha=alpha, epsilon=epsilon)
