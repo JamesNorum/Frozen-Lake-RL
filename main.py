@@ -8,6 +8,7 @@ from eligibility_traces import sarsa_lambda_et
 from multi_agent_q_learning import multi_agent_q_learning
 from eval_q import eval_q
 from eval_dynam import evaldyn
+from eval_et import eval_et
 
 def print_optimal_policy(optimal_policy, env):
     """
@@ -64,13 +65,13 @@ def main():
     """
     # Command Line Arguments
     parser = argparse.ArgumentParser(description='Dynamic programming for Frozen Lake environment.')
-    parser.add_argument('-al', '--algorithm', type=str, default="d", choices={"d", "q", "mcfv", "mcev", "et", "ma", "evalq", "evaldyn"}, help='The algorithm to use for solving the Frozen Lake environment. Default is dynamic. The options are d for Dynamic, q for Q-Learning, mcfv for Monte Carlo: First Visit, mcev for Monte Carlo: Every Visit, e for Eligibility Traces, ma for Multi Agent, evalq for evaluating Q-Learning, evaldyn for evaluating Dynamic Programming.')
+    parser.add_argument('-al', '--algorithm', type=str, default="d", choices={"d", "q", "mcfv", "mcev", "et", "ma", "evalq", "evaldyn", "evalet"}, help='The algorithm to use for solving the Frozen Lake environment. Default is dynamic. The options are d for Dynamic, q for Q-Learning, mcfv for Monte Carlo: First Visit, mcev for Monte Carlo: Every Visit, e for Eligibility Traces, ma for Multi Agent, evalq for evaluating Q-Learning, evaldyn for evaluating Dynamic Programming.')
     parser.add_argument('-g', '--gamma', type=float, default=0.90, help='Discount factor gamma.')    
     parser.add_argument('-t', '--threshold', type=float, default=0.0001, help='Convergence threshold.')
     parser.add_argument('-a', '--alpha', type=float, default=0.9, help='Alpha Value.')
     parser.add_argument('-e', '--epsilon', type=float, default=0.1, help='Epsilon Value.')
     parser.add_argument('-ep', '--episodes', type=int, default=5000, help='Number of episodes.')
-    parser.add_argument('-l', '--lambda_', type=float, default=0.9, help='Lambda Value. Used for eligibility trace decay')
+    parser.add_argument('-l', '--lambda_', type=float, default=0.6, help='Lambda Value. Used for eligibility trace decay')
     parser.add_argument('-d', '--desc', type=str, default=None, help='Description for the Frozen Lake environment.')
     parser.add_argument('-m', '--map', type=str, default="4x4", help='Map size for the Frozen Lake environment.')
     parser.add_argument('-r', '--render', type=str, default="human", help='Render mode for the Frozen Lake environment.')
@@ -118,7 +119,7 @@ def main():
     hole_reward = args.hole_reward
     step_reward = args.step_reward
 
-    print(f"Running Frozen Lake with parameters: Algorithm: {algorithm}, Gamma: {gamma}, Epsilon: {epsilon}, Alpha: {alpha}, Threshold: {threshold}, Episodes: {episodes}, Description: {desc}, Map: {map_name}, Render Mode: {render_mode}, Slippery: {slippery}")    
+    print(f"Running Frozen Lake with parameters: Algorithm: {algorithm}, Gamma: {gamma}, Epsilon: {epsilon}, Alpha: {alpha}, Lambda: {lambda_} Threshold: {threshold}, Episodes: {episodes}, Description: {desc}, Map: {map_name}, Render Mode: {render_mode}, Slippery: {slippery}")    
 
     # Make environment according to arguments
     env = gym.make('FrozenLake-v1', desc=desc, map_name=map_name, is_slippery=slippery)
@@ -134,6 +135,9 @@ def main():
     elif algorithm == "mcev":
         print("Monte Carlo: Every Visit")
         optimal_policy = every_visit_monte_carlo(env=env, episodes=episodes, gamma=gamma, epsilon=epsilon)
+    elif algorithm == "evalet":
+        print("Evaluating Eligibility Traces")
+        optimal_policy = eval_et(env=env, episodes=episodes, gamma=gamma, alpha=alpha, epsilon=epsilon, lambda_=lambda_)
     elif algorithm == "et":
         print("Eligibility Traces")
         optimal_policy = sarsa_lambda_et(env=env, episodes=episodes, gamma=gamma, alpha=alpha, epsilon=epsilon, lambda_=lambda_)
@@ -150,17 +154,7 @@ def main():
         print("Evaluating Dynamic Programming")
         optimal_policy = evaldyn(env)
 
-    """
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    TODO
-    JAMES:
-        Add other algorithms here once implemented
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    """ 
-
-
     print("Optimal policy:\n", optimal_policy)
-    
     print_optimal_policy(optimal_policy, env)
 
     # Change render mode to human

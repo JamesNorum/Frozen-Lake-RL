@@ -64,6 +64,7 @@ def every_visit_monte_carlo(env, episodes=5000, gamma=0.9, epsilon=0.1):
     episode_returns = []  # Total return (sum of rewards) per episode
     episode_lengths = []  # Number of steps per episode
     average_rewards_per_step = []  # Average reward per step in an episode
+    successes = []
 
     for _ in tqdm(range(episodes)):
         episode = generate_episode(env, policy, epsilon)
@@ -83,8 +84,17 @@ def every_visit_monte_carlo(env, episodes=5000, gamma=0.9, epsilon=0.1):
         episode_returns.append(total_return)
         episode_lengths.append(len(episode))
         average_rewards_per_step.append(total_return / len(episode) if len(episode) > 0 else 0)
-
+        
+        # Determine success based on total_return
+        if total_return > 0:
+            successes.append(1)
+        else:
+            successes.append(0)
     
+    # Calculate and print the final success rate
+    success_rate = sum(successes) / episodes
+    print(f"Final success rate: {success_rate:.3f}")
+
     # Set window size to 1% of the number of episodes
     window_size = episodes // 10  
 
@@ -93,27 +103,27 @@ def every_visit_monte_carlo(env, episodes=5000, gamma=0.9, epsilon=0.1):
 
     # Plot Total Return per Episode with Moving Average
     smoothed_returns = moving_average(episode_returns, window_size)
-    axs[0].plot(smoothed_returns, label='Total Return per Episode (Smoothed)')
-    axs[0].set_ylabel('Total Return (Smoothed)')
-    axs[0].set_title('Total Return per Episode over Training (Smoothed)')
+    axs[0].plot(smoothed_returns, label='Total Return per Episode')
+    axs[0].set_ylabel('Total Return')
+    axs[0].set_title('Total Return per Episode over Training')
     axs[0].legend(loc='lower right')
     axs[0].grid(True)
 
     # Plot Episode Length over Training with Moving Average
     smoothed_lengths = moving_average(episode_lengths, window_size)
-    axs[1].plot(smoothed_lengths, label='Episode Length (Smoothed)', color='orange')
-    axs[1].set_ylabel('Episode Length (Smoothed)')
-    axs[1].set_title('Episode Length over Training (Smoothed)')
+    axs[1].plot(smoothed_lengths, label='Episode Length', color='orange')
+    axs[1].set_ylabel('Episode Length')
+    axs[1].set_title('Episode Length over Training')
     axs[1].legend()
     axs[1].grid(True)
 
     # Plot Average Reward Per Step with Moving Average
     #plt.figure(figsize=(12, 7))
     smoothed_rewards = moving_average(average_rewards_per_step, window_size)
-    axs[2].plot(smoothed_rewards, label='Average Reward Per Step (Smoothed)', color='green')
+    axs[2].plot(smoothed_rewards, label='Average Reward Per Step', color='green')
     axs[2].set_xlabel('Episode')
-    axs[2].set_ylabel('Average Reward Per Step (Smoothed)')
-    axs[2].set_title('Average Reward Per Step over Training (Smoothed)')
+    axs[2].set_ylabel('Average Reward Per Step')
+    axs[2].set_title('Average Reward Per Step over Training')
     axs[2].legend(loc='lower right')
     axs[2].grid(True)
 
